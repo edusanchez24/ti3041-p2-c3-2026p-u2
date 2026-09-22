@@ -1,12 +1,13 @@
 from django.contrib import admin
-from .models import Producto
+from .models import Cliente, Producto, Venta
 
 # Register your models here.
 
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ("nombre","precio","stock","activo")
+    list_display = ("nombre", "codigo", "precio", "stock")
     search_fields = ("nombre",)
-    list_filter = ("activo",)
-    ordering = ("nombre","stock",)
+    ordering = ("nombre", "stock")
 
-admin.site.register(model_or_iterable=Producto, admin_class=ProductoAdmin)
+admin.site.register(Producto, ProductoAdmin)
+admin.site.register(Cliente)
+admin.site.register(Venta)

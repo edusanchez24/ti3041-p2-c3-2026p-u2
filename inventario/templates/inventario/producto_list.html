@@ -1,0 +1,61 @@
+<!-- inventario/templates/inventario/producto_list.html -->
+{% extends 'inventario/base.html' %}
+{% block title %}Catalogo | SNEAK//CTRL{% endblock %}
+{% block content %}
+<section aria-labelledby="titulo-productos">
+    <div class="mb-10 flex flex-wrap items-end justify-between gap-4 border-b-2 border-stone-950 pb-6">
+        <div>
+            <p class="mb-2 text-sm font-bold uppercase tracking-[0.22em] text-red-600">Control de stock</p>
+            <h1 id="titulo-productos" class="display-font text-5xl font-bold uppercase leading-none tracking-tight text-stone-950 sm:text-6xl">Catalogo<br><span class="text-red-600">Productos</span></h1>
+        </div>
+        <a href="{% url 'producto_create' %}" class="inline-flex min-h-11 items-center gap-2 border-2 border-stone-950 bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_#c7f000] transition hover:-translate-y-0.5 hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-500">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true"><path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Anadir producto
+        </a>
+    </div>
+    <!-- El formulario GET permite compartir y conservar el filtro de stock en la URL. -->
+    <form method="get" class="mb-8 flex flex-wrap items-end gap-4 border-2 border-stone-950 bg-[#f8f6ef] p-4 shadow-[4px_4px_0_#1c1c1b]">
+        <div class="min-w-56 flex-1">
+            <label for="filtro-stock" class="mb-2 block text-sm font-bold uppercase tracking-wide text-stone-800">Filtrar por stock</label>
+            <select id="filtro-stock" name="stock" class="w-full">
+                <option value="todos" {% if filtro_stock == 'todos' %}selected{% endif %}>Todos</option>
+                <option value="disponibles" {% if filtro_stock == 'disponibles' %}selected{% endif %}>Disponibles</option>
+                <option value="no_disponibles" {% if filtro_stock == 'no_disponibles' %}selected{% endif %}>No disponibles</option>
+            </select>
+        </div>
+        <button type="submit" class="inline-flex min-h-11 items-center gap-2 border-2 border-stone-950 bg-lime-300 px-4 py-2.5 text-sm font-bold text-stone-950 transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-500">Aplicar filtro</button>
+    </form>
+    {% if object_list %}
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Lista de productos">
+        {% for p in object_list %}
+        <li class="group flex min-h-56 flex-col border-2 border-stone-950 bg-[#f8f6ef] p-5 shadow-[5px_5px_0_#1c1c1b] transition duration-200 hover:-translate-y-1 hover:shadow-[8px_8px_0_#c7f000]">
+            <div class="mb-5 flex items-start justify-between gap-3">
+                <span class="inline-flex items-center bg-lime-300 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-stone-950">{{ p.stock }} en stock</span>
+                <span class="display-font text-2xl font-bold tabular-nums text-stone-950">${{ p.precio }}</span>
+            </div>
+            <h2 class="display-font text-3xl font-bold uppercase leading-none tracking-tight text-stone-950"><a href="{% url 'producto_detail' p.pk %}" class="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-red-600">{{ p.nombre }}</a></h2>
+            <p class="mt-3 text-xs font-bold uppercase tracking-wide text-stone-500">SKU / {{ p.codigo }}</p>
+            <p class="mt-2 line-clamp-2 text-sm leading-6 text-stone-600">{{ p.descripcion|default:"Sin descripcion disponible." }}</p>
+            <div class="mt-auto flex items-center justify-between pt-5">
+                <a href="{% url 'producto_detail' p.pk %}" class="text-sm font-bold uppercase tracking-wide text-red-600 hover:text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">Ver ficha<span aria-hidden="true"> &rarr;</span></a>
+                <div class="flex gap-1">
+                    <a href="{% url 'producto_update' p.pk %}" class="inline-flex size-10 items-center justify-center text-stone-600 transition hover:bg-lime-300 hover:text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600" aria-label="Editar {{ p.nombre }}" title="Editar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.86 3.49 3.65 3.65M4.5 19.5l3.99-.89L19.73 7.37a2.58 2.58 0 0 0-3.65-3.65L4.84 14.96 4.5 19.5Z" /></svg>
+                    </a>
+                    <a href="{% url 'producto_delete' p.pk %}" class="inline-flex size-10 items-center justify-center text-stone-600 transition hover:bg-red-100 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600" aria-label="Eliminar {{ p.nombre }}" title="Eliminar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9 14.4 19.2m-4.8 0L9.26 9m9.15-3.21c.34.05.68.1 1.02.16m-1.02-.16-1.07 13.92a2.25 2.25 0 0 1-2.24 2.08H8.9a2.25 2.25 0 0 1-2.24-2.08L5.59 5.79m12.82 0a48.1 48.1 0 0 0-12.82 0m0 0L5.5 3.88m1.09 1.91L7.02 3.3A2.25 2.25 0 0 1 9.24 1.5h5.52a2.25 2.25 0 0 1 2.22 1.8l.43 2.49" /></svg>
+                    </a>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="street-panel px-6 py-16 text-center">
+        <div class="mx-auto mb-4 flex size-12 items-center justify-center bg-lime-300 text-stone-950" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-8.25A3.375 3.375 0 0 0 4.5 11.625v5.25a3.375 3.375 0 0 0 3.375 3.375h4.875M8.25 5.25h7.5M12 2.25v3" /></svg></div>
+        <h2 class="display-font text-2xl font-bold uppercase text-stone-950">Aun no hay productos</h2>
+        <p class="mt-2 text-sm text-stone-600">Crea el primer producto para empezar a gestionar el inventario.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

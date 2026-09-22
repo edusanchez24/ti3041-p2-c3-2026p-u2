@@ -1,0 +1,56 @@
+{% extends 'inventario/base.html' %}
+{% block title %}Nueva venta{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-3xl" aria-labelledby="titulo-venta">
+  <div class="mb-7"><a href="{% url 'venta_list' %}" class="text-sm font-bold uppercase tracking-wide text-red-600 hover:text-stone-950">Volver a ventas</a><h1 id="titulo-venta" class="display-font mt-4 text-5xl font-bold uppercase tracking-tight text-stone-950">Registrar venta</h1><p class="mt-2 text-stone-600">El stock se descuenta automaticamente al guardar.</p></div>
+  {% if confirmando %}
+  <div class="street-panel p-6 sm:p-8">
+    <h2 class="display-font text-3xl font-bold uppercase tracking-tight text-stone-950">Confirmar venta</h2>
+    <p class="mt-2 text-stone-600">Revisa los productos antes de registrarlos definitivamente.</p>
+    <div class="mt-6 overflow-hidden border-2 border-stone-950">
+      <ul class="divide-y-2 divide-stone-200 bg-[#fcfbf6]" aria-label="Productos de la venta">
+        {% for item in carrito %}<li class="flex items-center justify-between gap-4 px-4 py-3"><div><p class="font-bold text-stone-950">{{ item.producto.codigo }} - {{ item.producto.nombre }}</p><p class="text-sm text-stone-600">{{ item.cantidad }} unidad{{ item.cantidad|pluralize }} x ${{ item.producto.precio }}</p></div><div class="flex items-center gap-4"><p class="font-bold text-stone-950">${{ item.subtotal }}</p><form method="post">{% csrf_token %}<input type="hidden" name="producto_id" value="{{ item.producto.pk }}"><button type="submit" name="accion" value="eliminar" class="text-sm font-bold text-red-600 hover:text-stone-950">Eliminar</button></form></div></li>{% endfor %}
+      </ul>
+      <div class="flex items-center justify-between border-t-2 border-stone-950 bg-lime-300 px-4 py-3 font-bold text-stone-950"><span>Total</span><span>${{ carrito_total }}</span></div>
+    </div>
+    <p class="mt-5 text-sm text-stone-600">Cliente: <span class="font-bold text-stone-950">{{ request.session.venta_datos_cliente.rut_cliente }}</span></p>
+    <form method="post" class="mt-8 flex items-center justify-between gap-3 border-t-2 border-stone-300 pt-5">{% csrf_token %}<button type="submit" name="accion" value="volver" class="px-3 text-sm font-semibold text-stone-700">Volver y editar</button><button type="submit" name="accion" value="registrar" class="border-2 border-stone-950 bg-stone-950 px-5 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_#c7f000] hover:bg-red-600">Confirmar venta</button></form>
+  </div>
+  {% else %}
+  <form method="post" class="street-panel p-6 sm:p-8">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="mb-5 border-2 border-red-600 bg-red-100 px-4 py-3 text-sm text-red-800">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="grid gap-5 sm:grid-cols-2">
+      {% for field in form %}<div class="{% if field.name == 'cliente_habitual' %}sm:col-span-2{% endif %}"><label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-bold uppercase tracking-wide text-stone-800">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="mt-2 text-sm font-medium text-red-700">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}
+    </div>
+    <p class="mt-5 text-sm leading-6 text-stone-600">Si no guardas al cliente como habitual, solo se conservara el RUT asociado a esta venta.</p>
+    <div class="mt-8 flex items-center justify-between gap-3 border-t-2 border-stone-300 pt-5"><a href="{% url 'venta_list' %}" class="px-3 text-sm font-semibold text-stone-700">Cancelar</a><button type="submit" name="accion" value="agregar" class="border-2 border-stone-950 bg-stone-950 px-5 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_#c7f000] hover:bg-red-600">Agregar producto</button></div>
+  </form>
+  {% if carrito %}<section class="street-panel mt-8 p-6" aria-labelledby="productos-agregados"><div class="flex items-center justify-between gap-3"><h2 id="productos-agregados" class="display-font text-3xl font-bold uppercase tracking-tight text-stone-950">Productos agregados</h2><span class="text-sm font-bold text-stone-600">${{ carrito_total }}</span></div><ul class="mt-4 divide-y-2 divide-stone-200 border-y-2 border-stone-950">{% for item in carrito %}<li class="flex items-center justify-between gap-4 py-3"><span class="font-semibold text-stone-950">{{ item.producto.codigo }} - {{ item.producto.nombre }} <span class="text-sm text-stone-600">x{{ item.cantidad }}</span></span><div class="flex items-center gap-4"><span class="font-bold text-stone-950">${{ item.subtotal }}</span><form method="post">{% csrf_token %}<input type="hidden" name="producto_id" value="{{ item.producto.pk }}"><button type="submit" name="accion" value="eliminar" class="text-sm font-bold text-red-600 hover:text-stone-950">Eliminar</button></form></div></li>{% endfor %}</ul><form method="post" class="mt-5 flex justify-end gap-3">{% csrf_token %}<button type="submit" name="accion" value="limpiar" class="px-3 text-sm font-semibold text-stone-700">Limpiar</button><button type="submit" name="accion" value="confirmar" class="border-2 border-stone-950 bg-lime-300 px-5 py-2.5 text-sm font-bold text-stone-950 hover:bg-white">Confirmar venta</button></form></section>{% endif %}
+  {% endif %}
+</section>
+{% if not confirmando %}
+<script>
+  // Completa los datos del cliente habitual después de ingresar su RUT.
+  const rutInput = document.getElementById('id_rut_cliente');
+  const habitualInput = document.getElementById('id_cliente_habitual');
+  const clientFields = ['nombre', 'telefono', 'direccion', 'correo'];
+  let lookupTimeout;
+
+  rutInput.addEventListener('input', () => {
+    // El retraso evita enviar una solicitud por cada tecla escrita.
+    window.clearTimeout(lookupTimeout);
+    lookupTimeout = window.setTimeout(async () => {
+      const rut = rutInput.value.trim();
+      if (!rut) return;
+      const response = await fetch(`{% url 'cliente_por_rut' %}?rut=${encodeURIComponent(rut)}`);
+      const cliente = await response.json();
+      if (!cliente.encontrado) return;
+      clientFields.forEach((fieldName) => {
+        document.getElementById(`id_${fieldName}`).value = cliente[fieldName];
+      });
+      habitualInput.checked = true;
+    }, 250);
+  });
+</script>
+{% endif %}
+{% endblock %}

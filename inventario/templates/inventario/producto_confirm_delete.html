@@ -1,0 +1,17 @@
+<!-- inventario/templates/inventario/producto_confirm_delete.html -->
+{% extends 'inventario/base.html' %}
+{% block title %}Eliminar producto{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-xl" aria-labelledby="titulo-eliminar">
+    <div class="street-panel p-6 sm:p-8">
+        <div class="flex size-12 items-center justify-center bg-red-100 text-red-700" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9.3-3.48c.87 1.51-.22 3.4-1.96 3.4H4.66c-1.74 0-2.83-1.89-1.96-3.4l7.34-12.7c.87-1.51 3.05-1.51 3.92 0l7.34 12.7ZM12 16.5h.008v.008H12V16.5Z" /></svg></div>
+        <p class="mt-5 text-sm font-bold uppercase tracking-wide text-red-700">Accion irreversible</p>
+        <h1 id="titulo-eliminar" class="display-font mt-2 text-3xl font-bold uppercase tracking-tight text-stone-950">Eliminar {{ object.nombre }}?</h1>
+        <p class="mt-3 leading-6 text-stone-600">El producto se eliminara definitivamente del inventario.</p>
+        <form method="post" class="mt-8 flex flex-wrap-reverse items-center justify-between gap-3">{% csrf_token %}
+            <a href="{% url 'producto_list' %}" class="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-stone-700 hover:text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">Cancelar</a>
+            <button type="submit" class="inline-flex min-h-11 items-center gap-2 border-2 border-red-700 bg-red-700 px-5 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_#1c1c1b] transition hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9 14.4 19.2m-4.8 0L9.26 9m9.15-3.21c.34.05.68.1 1.02.16m-1.02-.16-1.07 13.92a2.25 2.25 0 0 1-2.24 2.08H8.9a2.25 2.25 0 0 1-2.24-2.08L5.59 5.79m12.82 0a48.1 48.1 0 0 0-12.82 0m0 0L5.5 3.88m1.09 1.91L7.02 3.3A2.25 2.25 0 0 1 9.24 1.5h5.52a2.25 2.25 0 0 1 2.22 1.8l.43 2.49" /></svg>Si, eliminar</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

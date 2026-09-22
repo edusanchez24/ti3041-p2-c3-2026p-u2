@@ -1,0 +1,26 @@
+<!-- inventario/templates/inventario/producto_form.html -->
+{% extends 'inventario/base.html' %}
+{% block title %}Producto{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-2xl" aria-labelledby="titulo-producto">
+  <div class="mb-7">
+    <a href="{% url 'producto_list' %}" class="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-red-600 hover:text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>Volver a productos</a>
+    <h1 id="titulo-producto" class="display-font mt-4 text-5xl font-bold uppercase tracking-tight text-stone-950">Formulario Producto</h1>
+  </div>
+  <form method="post" class="street-panel p-6 sm:p-8">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="mb-5 border-2 border-red-600 bg-red-100 px-4 py-3 text-sm text-red-800">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="space-y-5">
+      {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-bold uppercase tracking-wide text-stone-800">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p class="mt-2 text-sm font-medium text-red-700">{{ field.errors|striptags }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="mt-8 flex flex-wrap-reverse items-center justify-between gap-3 border-t-2 border-stone-300 pt-5">
+      <button type="submit" class="inline-flex min-h-11 items-center gap-2 border-2 border-stone-950 bg-stone-950 px-5 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_#c7f000] transition hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 4.5v.75A2.25 2.25 0 0 1 14.25 7.5h-4.5A2.25 2.25 0 0 1 7.5 5.25V4.5m9 0A2.25 2.25 0 0 0 14.25 2.25h-4.5A2.25 2.25 0 0 0 7.5 4.5m9 0h.75A2.25 2.25 0 0 1 19.5 6.75v12A2.25 2.25 0 0 1 17.25 21h-10.5a2.25 2.25 0 0 1-2.25-2.25v-12A2.25 2.25 0 0 1 6.75 4.5h.75" /></svg>Guardar producto</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
