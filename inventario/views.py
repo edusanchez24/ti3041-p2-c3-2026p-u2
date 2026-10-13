@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET
 def _guardar_tallas(producto, tallas):
     if not tallas:
         ProductoTalla.objects.filter(producto=producto).delete()
+        Producto.objects.filter(pk=producto.pk).update(stock=0)
         return
     ProductoTalla.objects.filter(producto=producto).exclude(talla__in=tallas).delete()
     for talla, stock in tallas.items():

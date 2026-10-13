@@ -20,6 +20,7 @@
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {% for talla in tallas_disponibles %}<label class="flex items-center gap-2 border border-stone-300 bg-white px-3 py-2 text-sm font-bold"><span class="w-8">{{ talla }}</span><input type="number" min="0" name="stock_talla_{{ talla }}" data-talla-input="{{ talla }}" class="w-full min-w-0 border border-stone-300 px-2 py-1" value="0"></label>{% endfor %}
           </div>
+          <div class="mt-4 flex items-center justify-between border-t-2 border-stone-300 pt-3"><span class="text-sm font-bold uppercase tracking-wide text-stone-700">Stock total calculado</span><output id="stock-total" class="display-font text-2xl font-bold text-stone-950">0</output></div>
         </div>
         {% else %}{{ field }}{% endif %}
         {% if field.help_text %}<p class="mt-1 text-xs text-stone-500">{{ field.help_text }}</p>{% endif %}
@@ -36,16 +37,21 @@
   const tallasInput = document.getElementById('id_tallas');
   const tallasDisponibles = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
   const valoresIniciales = Object.fromEntries((tallasInput.value || '').split(',').filter(Boolean).map((item) => item.split(':')));
+  const stockTotal = document.getElementById('stock-total');
+  const actualizarStockTotal = () => {
+    const total = Array.from(document.querySelectorAll('[data-talla-input]'))
+      .reduce((suma, input) => suma + (Number(input.value) || 0), 0);
+    stockTotal.textContent = total;
+    tallasInput.value = tallasDisponibles
+      .map((talla) => [talla, document.querySelector(`[data-talla-input="${talla}"]`).value || 0])
+      .filter(([, stock]) => Number(stock) > 0)
+      .map(([talla, stock]) => `${talla}:${stock}`)
+      .join(',');
+  };
   document.querySelectorAll('[data-talla-input]').forEach((input) => {
     input.value = valoresIniciales[input.dataset.tallaInput] || 0;
-    input.addEventListener('input', () => {
-      tallasInput.value = tallasDisponibles
-        .map((talla) => [talla, document.querySelector(`[data-talla-input="${talla}"]`).value || 0])
-        .filter(([, stock]) => Number(stock) > 0)
-        .map(([talla, stock]) => `${talla}:${stock}`)
-        .join(',');
-    });
+    input.addEventListener('input', actualizarStockTotal);
   });
-  document.querySelector('[data-talla-input]')?.dispatchEvent(new Event('input'));
+  actualizarStockTotal();
 </script>
 {% endblock %}
