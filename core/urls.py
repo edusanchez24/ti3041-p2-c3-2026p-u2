@@ -19,7 +19,11 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 urlpatterns = [
+    # El Admin y las vistas públicas pasan por el mismo proyecto Django.
     path('admin/', admin.site.urls),
+    # Vercel llega a esta raíz y el usuario termina en el catálogo.
     path('', RedirectView.as_view(pattern_name='producto_list', permanent=False)),
+    # include delega las rutas del inventario a sus vistas, que consultan Supabase
+    # mediante el ORM; no existe una conexión directa del navegador a Supabase.
     path('', include('inventario.urls')),  # Conecta todas las URLs de inventario
 ]

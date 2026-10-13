@@ -2,6 +2,7 @@ from django.db import models
 
 # Create your models here.
 class Producto(models.Model):
+    # Estos campos representan el catálogo persistido por Django en Supabase.
     nombre = models.CharField(max_length=64)
     codigo = models.CharField(max_length=50, unique=True, null=True)
     precio = models.PositiveIntegerField(default=0)
@@ -10,6 +11,8 @@ class Producto(models.Model):
     activo = models.BooleanField(default=True)
 
     def actualizar_stock_total(self):
+        # El stock visible del producto es la suma de sus existencias por talla.
+        # update() escribe el total sin volver a disparar la lógica del modelo.
         self.stock = sum(talla.stock for talla in self.tallas.all())
         type(self).objects.filter(pk=self.pk).update(stock=self.stock)
         return self.stock
@@ -19,6 +22,7 @@ class Producto(models.Model):
 
 
 class ProductoTalla(models.Model):
+    # Cada fila es una combinación producto-talla; la restricción evita duplicarla.
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='tallas')
     talla = models.CharField(max_length=20)
     stock = models.PositiveIntegerField(default=0)
@@ -36,10 +40,12 @@ class ProductoTalla(models.Model):
         return f'{self.producto} - talla {self.talla}'
 
     def save(self, *args, **kwargs):
+        # Al cambiar una talla, se actualiza también el total que usa el catálogo.
         super().save(*args, **kwargs)
         self.producto.actualizar_stock_total()
 
     def delete(self, *args, **kwargs):
+        # Al eliminar una talla, el total del producto se recalcula inmediatamente.
         producto = self.producto
         resultado = super().delete(*args, **kwargs)
         producto.actualizar_stock_total()
@@ -70,6 +76,7 @@ class Venta(models.Model):
 
 
 class VentaDetalle(models.Model):
+    # El detalle conserva producto, talla y cantidad vendidos para auditar la venta.
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name='detalles')
     producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True)
     talla = models.ForeignKey(ProductoTalla, on_delete=models.SET_NULL, null=True, blank=True)
@@ -85,6 +92,7 @@ class VentaDetalle(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        # El subtotal se calcula en backend; el navegador nunca decide el importe.
         self.subtotal = self.cantidad * self.producto.precio if self.producto else 0
         super().save(*args, **kwargs)
 
@@ -93,6 +101,7 @@ class VentaDetalle(models.Model):
 
 
 def actualizar_total_venta(sender, instance, **kwargs):
+    # Estas señales mantienen Venta.total sincronizado incluso desde el Admin.
     if instance.venta_id:
         instance.venta.recalcular_total()
 

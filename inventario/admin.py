@@ -23,6 +23,8 @@ admin.site.register(Cliente)
 
 
 class VentaDetalleInline(admin.TabularInline):
+    # El detalle se edita dentro de la venta y se guarda en la misma base Supabase
+    # mediante el ORM, sin que el administrador tenga que cambiar de pantalla.
     model = VentaDetalle
     extra = 1
     fields = ('producto', 'talla', 'cantidad', 'subtotal')
@@ -40,6 +42,8 @@ class VentaAdmin(admin.ModelAdmin):
     ordering = ('-fecha',)
 
     def get_queryset(self, request):
+        # El rango se aplica al queryset antes de contar o sumar, por lo que el
+        # reporte representa exactamente el periodo seleccionado.
         queryset = super().get_queryset(request)
         fecha_desde = parse_date(request.GET.get('fecha_desde', ''))
         fecha_hasta = parse_date(request.GET.get('fecha_hasta', ''))
@@ -50,6 +54,7 @@ class VentaAdmin(admin.ModelAdmin):
         return queryset
 
     def changelist_view(self, request, extra_context=None):
+        # Sum y count son agregaciones SQL ejecutadas por Django sobre Supabase.
         queryset = self.get_queryset(request)
         resumen = queryset.aggregate(
             total_ventas=Sum('total'),

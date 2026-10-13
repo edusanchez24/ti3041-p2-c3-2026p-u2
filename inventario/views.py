@@ -10,6 +10,8 @@ from django.views.decorators.http import require_GET
 
 
 def _guardar_tallas(producto, tallas):
+    # La vista recibe el formulario web y convierte sus tallas en filas relacionadas.
+    # Desde aquí Django escribe en ProductoTalla y Supabase almacena esos cambios.
     if not tallas:
         ProductoTalla.objects.filter(producto=producto).delete()
         Producto.objects.filter(pk=producto.pk).update(stock=0)
@@ -34,6 +36,8 @@ def producto_list(request):
     if filtro_stock not in filtros_validos:
         filtro_stock = 'todos'
 
+    # El ORM genera la consulta a Supabase y prefetch_related evita una consulta
+    # adicional por cada producto al mostrar sus tallas.
     productos = Producto.objects.filter(activo=True).prefetch_related('tallas').order_by('nombre')
     if filtro_stock == 'disponibles':
         productos = productos.filter(stock__gt=0)
@@ -54,6 +58,8 @@ def producto_create(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
+            # Primero se crea el producto y después sus tallas; cada talla actualiza
+            # el stock total persistido en Producto.
             producto = form.save()
             _guardar_tallas(producto, form.cleaned_data['tallas'])
             return redirect('producto_list')
@@ -118,6 +124,8 @@ def cliente_por_rut(request):
 
 
 def _venta_carrito(request):
+    # El carrito vive temporalmente en la sesión de Django; todavía no es una venta
+    # de Supabase hasta que el usuario confirma el registro.
     return request.session.get('venta_carrito', {})
 
 
@@ -188,7 +196,8 @@ def venta_create(request):
             **_venta_carrito_context(request),
         })
     elif request.method == 'POST' and accion == 'registrar':
-        # La transacción mantiene sincronizados el stock, el detalle y el total de la venta.
+        # La transacción agrupa todas las escrituras en Supabase: si una validación
+        # falla, no queda una venta parcial ni stock descontado a medias.
         carrito = _venta_carrito(request)
         datos_cliente = request.session.get('venta_datos_cliente', {})
         if not carrito:
@@ -208,6 +217,8 @@ def venta_create(request):
                 )
             }
             for clave, cantidad in carrito.items():
+                # select_for_update bloquea estas filas durante la venta y evita
+                # vender simultáneamente el mismo stock desde dos solicitudes.
                 producto_id, _, talla_id = clave.partition(':')
                 producto = productos.get(str(producto_id))
                 talla = tallas.get(talla_id) if talla_id else None
@@ -244,6 +255,8 @@ def venta_create(request):
                     cantidad=cantidad,
                 )
                 if talla:
+                    # Para productos con tallas se descuenta la talla elegida;
+                    # los productos antiguos continúan usando stock general.
                     talla.stock -= cantidad
                     talla.save(update_fields=['stock'])
                 else:

@@ -16,6 +16,8 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+# En desarrollo se leen desde .env; en Vercel estas mismas variables deben existir
+# en Project Settings. Django las usa para abrir la conexión PostgreSQL de Supabase.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,6 +36,8 @@ SECRET_KEY = 'django-insecure-*3ro#sp5^id1c4p)gn+39d&eqqfhc1t&izwafckw621el4&#we
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
+# Vercel envía el dominio público en HTTP_HOST. ALLOWED_HOSTS es la lista de
+# dominios que Django acepta antes de ejecutar cualquier vista.
 configured_hosts = os.getenv('ALLOWED_HOSTS', '')
 vercel_hosts = [
     os.getenv('VERCEL_URL', ''),
@@ -94,6 +98,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 if os.getenv('DJANGO_TESTING'):
+    # Las pruebas son aisladas y no deben escribir en la base real de Supabase.
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -105,6 +110,8 @@ elif not all((db_host, db_port, db_database, db_user, db_password)):
         'Faltan variables de PostgreSQL: host, port, database, user y password.'
     )
 else:
+    # En desarrollo normal y producción, el ORM de Django persiste directamente
+    # en PostgreSQL administrado por Supabase usando estas credenciales.
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',

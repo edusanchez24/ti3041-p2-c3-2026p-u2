@@ -13,4 +13,6 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
+# Vercel carga este callable WSGI para convertir cada petición HTTPS en una
+# petición Django y devolver la respuesta HTTP generada por las vistas.
 application = get_wsgi_application()

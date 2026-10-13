@@ -9,6 +9,8 @@ class ProductoChoiceField(forms.ModelChoiceField):
 
 
 class ProductoForm(forms.ModelForm):
+    # El formulario solo captura datos; el guardado en views.py crea las tallas
+    # relacionadas y calcula el stock total en backend.
     tallas = forms.CharField(
         required=False,
         label='Stock por talla',
@@ -82,6 +84,7 @@ class ProductoTallaForm(forms.ModelForm):
 
 
 class VentaForm(forms.Form):
+    # La validación ocurre antes de abrir la transacción que escribe en Supabase.
     # Este formulario concentra los datos de la venta y del cliente ocasional o habitual.
     cliente_habitual = forms.BooleanField(required=False, label='Guardar como cliente habitual')
     nombre = forms.CharField(
