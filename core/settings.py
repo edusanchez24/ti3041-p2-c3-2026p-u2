@@ -32,14 +32,19 @@ db_password = os.getenv("password")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-*3ro#sp5^id1c4p)gn+39d&eqqfhc1t&izwafckw621el4&#we'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = [
-    'ti3041-p2-c3-2026p-u2-tau.vercel.app',
-    'localhost',
-    '127.0.0.1'
+configured_hosts = os.getenv('ALLOWED_HOSTS', '')
+vercel_hosts = [
+    os.getenv('VERCEL_URL', ''),
+    os.getenv('VERCEL_BRANCH_URL', ''),
 ]
+ALLOWED_HOSTS = [
+    'cuidatuventa.vercel.app',
+    'localhost',
+    '127.0.0.1',
+] + [host.strip() for host in configured_hosts.split(',') if host.strip()]
+ALLOWED_HOSTS += [host for host in vercel_hosts if host]
 
 
 # Application definition
@@ -56,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -87,13 +93,17 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-if os.getenv('DJANGO_TESTING') or not all((db_host, db_port, db_database, db_user, db_password)):
+if os.getenv('DJANGO_TESTING'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': ':memory:' if os.getenv('DJANGO_TESTING') else BASE_DIR / 'db.sqlite3',
         }
     }
+elif not all((db_host, db_port, db_database, db_user, db_password)):
+    raise RuntimeError(
+        'Faltan variables de PostgreSQL: host, port, database, user y password.'
+    )
 else:
     DATABASES = {
         'default': {
@@ -142,7 +152,18 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Configuración para que WhiteNoise comprima y gestione los archivos en producción
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
