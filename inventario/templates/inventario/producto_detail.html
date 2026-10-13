@@ -16,6 +16,7 @@
 			<div class="border-2 border-stone-300 bg-[#fcfbf6] p-4"><dt class="text-sm font-bold uppercase tracking-wide text-stone-500">Precio</dt><dd class="mt-1 display-font text-3xl font-bold tabular-nums tracking-tight text-stone-950">${{ object.precio }}</dd></div>
 			<div class="border-2 border-stone-300 bg-lime-300 p-4"><dt class="text-sm font-bold uppercase tracking-wide text-stone-700">Disponibilidad</dt><dd class="mt-1 display-font text-3xl font-bold tabular-nums tracking-tight text-stone-950">{{ object.stock }} <span class="text-base font-semibold text-stone-700">unidades</span></dd></div>
 			<div class="sm:col-span-2"><dt class="text-sm font-bold uppercase tracking-wide text-stone-500">Descripcion</dt><dd class="mt-2 text-base leading-7 text-stone-700">{{ object.descripcion|default:"Sin descripcion disponible." }}</dd></div>
+			<div class="sm:col-span-2"><dt class="text-sm font-bold uppercase tracking-wide text-stone-500">Stock por talla</dt><dd class="mt-2 flex flex-wrap gap-2">{% for talla in object.tallas.all %}<span class="border-2 border-stone-950 bg-lime-300 px-3 py-1 text-sm font-bold text-stone-950">{{ talla.talla }}: {{ talla.stock }}</span>{% empty %}<span class="text-base text-stone-700">Sin tallas configuradas.</span>{% endfor %}</dd></div>
 		</dl>
 	</article>
 </section>

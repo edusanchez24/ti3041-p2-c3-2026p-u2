@@ -1,5 +1,5 @@
 from django import forms
-from .models import Cliente, Producto
+from .models import Cliente, Producto, ProductoTalla
 
 class ProductoChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -7,9 +7,19 @@ class ProductoChoiceField(forms.ModelChoiceField):
 
 
 class ProductoForm(forms.ModelForm):
+    tallas = forms.CharField(
+        required=False,
+        label='Stock por talla',
+        help_text='Formato: S:10, M:5, L:2',
+        widget=forms.TextInput(attrs={
+            'placeholder': 'S:10, M:5, L:2',
+            'autocomplete': 'off',
+        }),
+    )
+
     class Meta:
         model = Producto
-        fields = ['nombre', 'codigo', 'precio', 'descripcion', 'stock']
+        fields = ['nombre', 'codigo', 'precio', 'descripcion', 'stock', 'activo']
         widgets = {
             'nombre': forms.TextInput(attrs={
                 'class': 'w-full rounded-xl border border-slate-300 bg-white/80 px-3 py-2.5 text-slate-950 shadow-sm outline-none transition duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-sky-600 focus:bg-white focus:ring-4 focus:ring-sky-100',
@@ -40,6 +50,33 @@ class ProductoForm(forms.ModelForm):
             }),
         }
 
+    def clean_tallas(self):
+        valor = self.cleaned_data['tallas'].strip()
+        tallas = {}
+        if not valor:
+            return tallas
+        for entrada in valor.split(','):
+            partes = entrada.strip().split(':', 1)
+            if len(partes) != 2 or not partes[0].strip():
+                raise forms.ValidationError('Usa el formato talla:stock, por ejemplo S:10, M:5.')
+            talla = partes[0].strip().upper()
+            try:
+                stock = int(partes[1].strip())
+            except ValueError:
+                raise forms.ValidationError('El stock de cada talla debe ser un número entero.')
+            if stock < 0:
+                raise forms.ValidationError('El stock por talla no puede ser negativo.')
+            if talla in tallas:
+                raise forms.ValidationError(f'La talla {talla} está repetida.')
+            tallas[talla] = stock
+        return tallas
+
+
+class ProductoTallaForm(forms.ModelForm):
+    class Meta:
+        model = ProductoTalla
+        fields = ['talla', 'stock']
+
 
 class VentaForm(forms.Form):
     # Este formulario concentra los datos de la venta y del cliente ocasional o habitual.
@@ -57,6 +94,12 @@ class VentaForm(forms.Form):
     direccion = forms.CharField(required=False, max_length=200)
     correo = forms.EmailField(required=False)
     producto = ProductoChoiceField(queryset=Producto.objects.all(), label='Producto')
+    talla = forms.ModelChoiceField(
+        queryset=ProductoTalla.objects.select_related('producto').all(),
+        required=False,
+        label='Talla',
+        empty_label='Producto sin talla / stock general',
+    )
     cantidad = forms.IntegerField(
         min_value=1,
         error_messages={'min_value': 'La cantidad debe ser al menos 1.'},
@@ -93,11 +136,17 @@ class VentaForm(forms.Form):
         # Las reglas de stock se validan antes de guardar para evitar cantidades imposibles.
         cleaned_data = super().clean()
         producto = cleaned_data.get('producto')
+        talla = cleaned_data.get('talla')
         cantidad = cleaned_data.get('cantidad')
+        if talla and producto and talla.producto_id != producto.pk:
+            self.add_error('talla', 'La talla seleccionada no pertenece al producto.')
+        if producto and producto.tallas.exists() and not talla:
+            self.add_error('talla', 'Selecciona una talla para este producto.')
+        stock_disponible = talla.stock if talla else (producto.stock if producto else 0)
         if cantidad is not None and cantidad < 1:
             self.add_error('cantidad', 'La cantidad debe ser al menos 1.')
-        if producto and cantidad and cantidad > producto.stock:
-            self.add_error('cantidad', f'El producto solo tiene {producto.stock} unidades disponibles.')
+        if producto and cantidad and cantidad > stock_disponible:
+            self.add_error('cantidad', f'Solo hay {stock_disponible} unidades disponibles.')
 
         if cleaned_data.get('cliente_habitual'):
             required_fields = ('nombre', 'telefono', 'direccion', 'correo')

@@ -2,11 +2,23 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Cliente, Producto, Venta, VentaDetalle
+from .models import Cliente, Producto, ProductoTalla, Venta, VentaDetalle
 from .forms import ProductoForm, VentaForm
 
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET
+
+
+def _guardar_tallas(producto, tallas):
+    if not tallas:
+        return
+    ProductoTalla.objects.filter(producto=producto).exclude(talla__in=tallas).delete()
+    for talla, stock in tallas.items():
+        ProductoTalla.objects.update_or_create(
+            producto=producto,
+            talla=talla,
+            defaults={'stock': stock},
+        )
 
 # Create your views here.
 def producto_list(request):
@@ -16,7 +28,7 @@ def producto_list(request):
     if filtro_stock not in filtros_validos:
         filtro_stock = 'todos'
 
-    productos = Producto.objects.order_by('nombre')
+    productos = Producto.objects.filter(activo=True).prefetch_related('tallas').order_by('nombre')
     if filtro_stock == 'disponibles':
         productos = productos.filter(stock__gt=0)
     elif filtro_stock == 'no_disponibles':
@@ -36,7 +48,8 @@ def producto_create(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
-            form.save()
+            producto = form.save()
+            _guardar_tallas(producto, form.cleaned_data['tallas'])
             return redirect('producto_list')
     else:
         form = ProductoForm()
@@ -51,7 +64,8 @@ def producto_update(request, pk):
         form = ProductoForm(request.POST, instance=producto)
 
         if form.is_valid():
-            form.save()
+            producto = form.save()
+            _guardar_tallas(producto, form.cleaned_data['tallas'])
             return redirect('producto_list')
     else:
         form = ProductoForm(instance=producto)
@@ -103,12 +117,20 @@ def _venta_carrito(request):
 
 def _venta_carrito_context(request):
     carrito = _venta_carrito(request)
-    productos = Producto.objects.filter(pk__in=carrito.keys())
+    producto_ids = [key.split(':', 1)[0] for key in carrito]
+    productos = Producto.objects.filter(pk__in=producto_ids).prefetch_related('tallas')
+    productos_por_id = {str(producto.pk): producto for producto in productos}
     items = []
-    for producto in productos:
-        cantidad = carrito[str(producto.pk)]
+    for clave, cantidad in carrito.items():
+        producto_id, _, talla_id = clave.partition(':')
+        producto = productos_por_id.get(producto_id)
+        if producto is None:
+            continue
+        talla = next((item for item in producto.tallas.all() if str(item.pk) == talla_id), None)
         items.append({
             'producto': producto,
+            'talla': talla,
+            'clave': clave,
             'cantidad': cantidad,
             'subtotal': producto.precio * cantidad,
         })
@@ -132,13 +154,16 @@ def venta_create(request):
         form = VentaForm(request.POST)
         if form.is_valid():
             producto = form.cleaned_data['producto']
+            talla = form.cleaned_data.get('talla')
             cantidad = form.cleaned_data['cantidad']
             carrito = _venta_carrito(request)
-            cantidad_total = carrito.get(str(producto.pk), 0) + cantidad
-            if cantidad_total > producto.stock:
-                form.add_error('cantidad', f'El producto solo tiene {producto.stock} unidades disponibles.')
+            clave = f'{producto.pk}:{talla.pk}' if talla else str(producto.pk)
+            stock_disponible = talla.stock if talla else producto.stock
+            cantidad_total = carrito.get(clave, 0) + cantidad
+            if cantidad_total > stock_disponible:
+                form.add_error('cantidad', f'Solo hay {stock_disponible} unidades disponibles.')
             else:
-                carrito[str(producto.pk)] = cantidad_total
+                carrito[clave] = cantidad_total
                 request.session['venta_carrito'] = carrito
                 request.session['venta_datos_cliente'] = {
                     field_name: form.cleaned_data.get(field_name)
@@ -165,13 +190,23 @@ def venta_create(request):
             return redirect('venta_create')
 
         with transaction.atomic():
+            producto_ids = [key.split(':', 1)[0] for key in carrito]
             productos = {
                 str(producto.pk): producto
-                for producto in Producto.objects.select_for_update().filter(pk__in=carrito.keys())
+                for producto in Producto.objects.select_for_update().filter(pk__in=producto_ids)
             }
-            for producto_id, cantidad in carrito.items():
+            tallas = {
+                str(talla.pk): talla
+                for talla in ProductoTalla.objects.select_for_update().filter(
+                    pk__in=[key.split(':', 1)[1] for key in carrito if ':' in key]
+                )
+            }
+            for clave, cantidad in carrito.items():
+                producto_id, _, talla_id = clave.partition(':')
                 producto = productos.get(str(producto_id))
-                if producto is None or cantidad < 1 or cantidad > producto.stock:
+                talla = tallas.get(talla_id) if talla_id else None
+                stock_disponible = talla.stock if talla else (producto.stock if producto else 0)
+                if producto is None or (talla and talla.producto_id != producto.pk) or cantidad < 1 or cantidad > stock_disponible:
                     messages.error(request, 'Uno de los productos ya no tiene stock suficiente.')
                     return redirect('venta_create')
 
@@ -192,15 +227,22 @@ def venta_create(request):
                 cliente=cliente,
             )
             total_venta = 0
-            for producto_id, cantidad in carrito.items():
+            for clave, cantidad in carrito.items():
+                producto_id, _, talla_id = clave.partition(':')
                 producto = productos[str(producto_id)]
+                talla = tallas.get(talla_id) if talla_id else None
                 detalle = VentaDetalle.objects.create(
                     venta=venta,
                     producto=producto,
+                    talla=talla,
                     cantidad=cantidad,
                 )
-                producto.stock -= cantidad
-                producto.save(update_fields=['stock'])
+                if talla:
+                    talla.stock -= cantidad
+                    talla.save(update_fields=['stock'])
+                else:
+                    producto.stock -= cantidad
+                    producto.save(update_fields=['stock'])
                 total_venta += detalle.subtotal
 
             venta.total = total_venta
@@ -213,7 +255,9 @@ def venta_create(request):
     elif request.method == 'POST' and accion == 'eliminar':
         carrito = _venta_carrito(request)
         producto_id = request.POST.get('producto_id')
-        carrito.pop(str(producto_id), None)
+        talla_id = request.POST.get('talla_id')
+        clave = f'{producto_id}:{talla_id}' if talla_id else str(producto_id)
+        carrito.pop(clave, None)
         request.session['venta_carrito'] = carrito
         request.session.modified = True
         return redirect('venta_create')
