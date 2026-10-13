@@ -1,6 +1,8 @@
 from django import forms
 from .models import Cliente, Producto, ProductoTalla
 
+TALLAS_VALIDAS = {str(talla) for talla in range(35, 47)}
+
 class ProductoChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         return f'{obj.codigo} - {obj.nombre}'
@@ -10,12 +12,17 @@ class ProductoForm(forms.ModelForm):
     tallas = forms.CharField(
         required=False,
         label='Stock por talla',
-        help_text='Formato: S:10, M:5, L:2',
-        widget=forms.TextInput(attrs={
-            'placeholder': 'S:10, M:5, L:2',
-            'autocomplete': 'off',
-        }),
+        help_text='Selecciona una talla y define cuantas unidades tienes disponibles.',
+        widget=forms.HiddenInput(),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['tallas'].initial = ','.join(
+                f'{talla.talla}:{talla.stock}'
+                for talla in self.instance.tallas.all()
+            )
 
     class Meta:
         model = Producto
@@ -59,7 +66,9 @@ class ProductoForm(forms.ModelForm):
             partes = entrada.strip().split(':', 1)
             if len(partes) != 2 or not partes[0].strip():
                 raise forms.ValidationError('Usa el formato talla:stock, por ejemplo S:10, M:5.')
-            talla = partes[0].strip().upper()
+            talla = partes[0].strip()
+            if talla not in TALLAS_VALIDAS:
+                raise forms.ValidationError('La talla debe estar entre 35 y 46.')
             try:
                 stock = int(partes[1].strip())
             except ValueError:
@@ -99,6 +108,7 @@ class VentaForm(forms.Form):
         required=False,
         label='Talla',
         empty_label='Producto sin talla / stock general',
+        widget=forms.Select(attrs={'data-talla-selector': 'true'}),
     )
     cantidad = forms.IntegerField(
         min_value=1,
@@ -118,6 +128,11 @@ class VentaForm(forms.Form):
             'pattern': r'[0-9]{1,10}-[0-9Kk]',
         }),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['producto'].queryset = Producto.objects.filter(activo=True)
+        self.fields['talla'].queryset = ProductoTalla.objects.filter(stock__gt=0).select_related('producto')
 
     def clean_nombre(self):
         # La validación del servidor protege el flujo aunque se desactive la validación HTML.

@@ -20,7 +20,7 @@
   <form method="post" class="street-panel p-6 sm:p-8">{% csrf_token %}
     {% if form.non_field_errors %}<div class="mb-5 border-2 border-red-600 bg-red-100 px-4 py-3 text-sm text-red-800">{{ form.non_field_errors }}</div>{% endif %}
     <div class="grid gap-5 sm:grid-cols-2">
-      {% for field in form %}<div class="{% if field.name == 'cliente_habitual' %}sm:col-span-2{% endif %}"><label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-bold uppercase tracking-wide text-stone-800">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="mt-1 text-xs text-stone-500">{{ field.help_text }}</p>{% endif %}{% if field.errors %}<p class="mt-2 text-sm font-medium text-red-700">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}
+      {% for field in form %}<div class="{% if field.name == 'cliente_habitual' %}sm:col-span-2{% endif %}"><label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-bold uppercase tracking-wide text-stone-800">{{ field.label }}</label>{% if field.name == 'talla' %}<select name="{{ field.html_name }}" id="{{ field.id_for_label }}" data-talla-select class="w-full"><option value="">Producto sin talla / stock general</option>{% for opcion in form.talla.field.queryset %}<option value="{{ opcion.pk }}" data-producto-id="{{ opcion.producto_id }}"{% if form.talla.value|stringformat:'s' == opcion.pk|stringformat:'s' %} selected{% endif %}>{{ opcion.talla }} ({{ opcion.stock }} disponibles)</option>{% empty %}{% endfor %}</select>{% else %}{{ field }}{% endif %}{% if field.help_text %}<p class="mt-1 text-xs text-stone-500">{{ field.help_text }}</p>{% endif %}{% if field.errors %}<p class="mt-2 text-sm font-medium text-red-700">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}
     </div>
     <p class="mt-5 text-sm leading-6 text-stone-600">Si no guardas al cliente como habitual, solo se conservara el RUT asociado a esta venta.</p>
     <div class="mt-8 flex items-center justify-between gap-3 border-t-2 border-stone-300 pt-5"><a href="{% url 'venta_list' %}" class="px-3 text-sm font-semibold text-stone-700">Cancelar</a><button type="submit" name="accion" value="agregar" class="border-2 border-stone-950 bg-stone-950 px-5 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_#c7f000] hover:bg-red-600">Agregar producto</button></div>
@@ -32,6 +32,26 @@
 <script>
   // Completa los datos del cliente habitual después de ingresar su RUT.
   const rutInput = document.getElementById('id_rut_cliente');
+  const productoSelect = document.getElementById('id_producto');
+  const tallaSelect = document.querySelector('[data-talla-select]');
+  const actualizarTallas = () => {
+    if (!productoSelect || !tallaSelect) return;
+    const productoId = productoSelect.value;
+    let primeraDisponible = null;
+    let hayTallas = false;
+    Array.from(tallaSelect.options).forEach((option) => {
+      const visible = option.value === '' || option.dataset.productoId === productoId;
+      if (option.dataset.productoId === productoId) hayTallas = true;
+      option.hidden = !visible;
+      if (visible && !primeraDisponible) primeraDisponible = option;
+    });
+    const opcionGeneral = tallaSelect.options[0];
+    opcionGeneral.hidden = hayTallas;
+    const actual = Array.from(tallaSelect.options).find((option) => !option.hidden && option.selected);
+    tallaSelect.value = actual ? actual.value : (primeraDisponible ? primeraDisponible.value : '');
+  };
+  productoSelect?.addEventListener('change', actualizarTallas);
+  actualizarTallas();
   const habitualInput = document.getElementById('id_cliente_habitual');
   const clientFields = ['nombre', 'telefono', 'direccion', 'correo'];
   let lookupTimeout;

@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET
 
 def _guardar_tallas(producto, tallas):
     if not tallas:
+        ProductoTalla.objects.filter(producto=producto).delete()
         return
     ProductoTalla.objects.filter(producto=producto).exclude(talla__in=tallas).delete()
     for talla, stock in tallas.items():
@@ -19,6 +20,10 @@ def _guardar_tallas(producto, tallas):
             talla=talla,
             defaults={'stock': stock},
         )
+
+
+def _producto_form_context(form):
+    return {'form': form, 'tallas_disponibles': range(35, 47)}
 
 # Create your views here.
 def producto_list(request):
@@ -54,7 +59,7 @@ def producto_create(request):
     else:
         form = ProductoForm()
 
-    return render(request, 'inventario/producto_form.html', {'form': form})
+    return render(request, 'inventario/producto_form.html', _producto_form_context(form))
 
 @csrf_protect
 def producto_update(request, pk):
@@ -70,7 +75,7 @@ def producto_update(request, pk):
     else:
         form = ProductoForm(instance=producto)
 
-    return render(request, 'inventario/producto_form.html', {'form': form})
+    return render(request, 'inventario/producto_form.html', _producto_form_context(form))
 
 @csrf_protect
 def producto_delete(request, pk):

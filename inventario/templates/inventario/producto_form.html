@@ -13,7 +13,16 @@
       {% for field in form %}
       <div>
         <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-bold uppercase tracking-wide text-stone-800">{{ field.label }}</label>
+        {% if field.name == 'tallas' %}
         {{ field }}
+        <div id="tallas-agregador" class="border-2 border-stone-300 bg-[#fcfbf6] p-4">
+          <div class="mb-3 flex items-center justify-between gap-3"><p class="text-sm font-bold text-stone-800">Stock disponible por talla</p><p class="text-xs text-stone-500">Tallas 35 a 46</p></div>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {% for talla in tallas_disponibles %}<label class="flex items-center gap-2 border border-stone-300 bg-white px-3 py-2 text-sm font-bold"><span class="w-8">{{ talla }}</span><input type="number" min="0" name="stock_talla_{{ talla }}" data-talla-input="{{ talla }}" class="w-full min-w-0 border border-stone-300 px-2 py-1" value="0"></label>{% endfor %}
+          </div>
+        </div>
+        {% else %}{{ field }}{% endif %}
+        {% if field.help_text %}<p class="mt-1 text-xs text-stone-500">{{ field.help_text }}</p>{% endif %}
         {% if field.errors %}<p class="mt-2 text-sm font-medium text-red-700">{{ field.errors|striptags }}</p>{% endif %}
       </div>
       {% endfor %}
@@ -23,4 +32,20 @@
     </div>
   </form>
 </section>
+<script>
+  const tallasInput = document.getElementById('id_tallas');
+  const tallasDisponibles = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
+  const valoresIniciales = Object.fromEntries((tallasInput.value || '').split(',').filter(Boolean).map((item) => item.split(':')));
+  document.querySelectorAll('[data-talla-input]').forEach((input) => {
+    input.value = valoresIniciales[input.dataset.tallaInput] || 0;
+    input.addEventListener('input', () => {
+      tallasInput.value = tallasDisponibles
+        .map((talla) => [talla, document.querySelector(`[data-talla-input="${talla}"]`).value || 0])
+        .filter(([, stock]) => Number(stock) > 0)
+        .map(([talla, stock]) => `${talla}:${stock}`)
+        .join(',');
+    });
+  });
+  document.querySelector('[data-talla-input]')?.dispatchEvent(new Event('input'));
+</script>
 {% endblock %}
