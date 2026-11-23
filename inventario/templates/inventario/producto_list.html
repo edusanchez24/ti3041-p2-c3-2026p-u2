@@ -58,5 +58,16 @@
         <p class="mt-2 text-sm text-stone-600">Crea el primer producto para empezar a gestionar el inventario.</p>
     </div>
     {% endif %}
+    {% if page_obj %}
+    <nav class="mt-8 flex items-center justify-center gap-3" aria-label="Paginacion de productos">
+        {% if page_obj.has_previous %}
+        <a href="?stock={{ filtro_stock }}&amp;page={{ page_obj.previous_page_number }}" class="border-2 border-stone-950 bg-white px-4 py-2 text-sm font-bold hover:bg-lime-300">Anterior</a>
+        {% endif %}
+        <span class="px-2 text-sm font-bold">Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?stock={{ filtro_stock }}&amp;page={{ page_obj.next_page_number }}" class="border-2 border-stone-950 bg-white px-4 py-2 text-sm font-bold hover:bg-lime-300">Siguiente</a>
+        {% endif %}
+    </nav>
+    {% endif %}
 </section>
 {% endblock %}

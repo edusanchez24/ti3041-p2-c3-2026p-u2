@@ -32,7 +32,7 @@ db_password = os.getenv("password")
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*3ro#sp5^id1c4p)gn+39d&eqqfhc1t&izwafckw621el4&#we'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-clave-solo-desarrollo-local')
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
@@ -158,7 +158,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

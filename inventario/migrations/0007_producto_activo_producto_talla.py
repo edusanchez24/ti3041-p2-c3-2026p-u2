@@ -10,12 +10,10 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
-                    sql=(
-                        "ALTER TABLE inventario_producto "
-                        "ADD COLUMN IF NOT EXISTS activo boolean NOT NULL DEFAULT true"
-                    ),
-                    reverse_sql=migrations.RunSQL.noop,
+                migrations.AddField(
+                    model_name='producto',
+                    name='activo',
+                    field=models.BooleanField(default=True),
                 ),
             ],
             state_operations=[

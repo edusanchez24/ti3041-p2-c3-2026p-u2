@@ -9,5 +9,16 @@
     <button type="submit" class="inline-flex min-h-11 items-center gap-2 border-2 border-stone-950 bg-lime-300 px-4 py-2.5 text-sm font-bold text-stone-950 transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-500">Buscar</button>
   </form>
   {% if ventas %}<div class="overflow-x-auto border-2 border-stone-950 bg-[#f8f6ef] shadow-[6px_6px_0_#1c1c1b]"><table class="w-full min-w-[680px] text-left text-sm"><thead class="border-b-2 border-stone-950 bg-stone-950 text-xs uppercase tracking-wide text-stone-200"><tr><th class="px-5 py-4">Fecha</th><th class="px-5 py-4">Cliente / RUT</th><th class="px-5 py-4">Productos</th><th class="px-5 py-4 text-right">Total</th></tr></thead><tbody class="divide-y divide-stone-300">{% for venta in ventas %}<tr class="hover:bg-lime-100"><td class="px-5 py-4 text-stone-600">{{ venta.fecha|date:'d/m/Y H:i' }}</td><td class="px-5 py-4"><strong class="block text-stone-950">{% if venta.cliente %}{{ venta.cliente.nombre }}{% else %}Venta ocasional{% endif %}</strong><span class="text-stone-500">{{ venta.rut_cliente }}</span></td><td class="px-5 py-4 font-semibold text-stone-700"><ul>{% for detalle in venta.detalles.all %}<li>{{ detalle.producto.codigo }} - {{ detalle.producto.nombre }} <span class="font-normal text-stone-500">x{{ detalle.cantidad }}</span></li>{% endfor %}</ul></td><td class="px-5 py-4 text-right font-bold tabular-nums text-stone-950">${{ venta.total }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="street-panel px-6 py-16 text-center"><h2 class="display-font text-2xl font-bold uppercase text-stone-950">Aun no hay ventas</h2><p class="mt-2 text-sm text-stone-600">Registra la primera venta para comenzar el historial.</p></div>{% endif %}
+  {% if page_obj %}
+  <nav class="mt-8 flex items-center justify-center gap-3" aria-label="Paginacion de ventas">
+    {% if page_obj.has_previous %}
+    <a href="?rut={{ rut_busqueda|urlencode }}&amp;page={{ page_obj.previous_page_number }}" class="border-2 border-stone-950 bg-white px-4 py-2 text-sm font-bold hover:bg-lime-300">Anterior</a>
+    {% endif %}
+    <span class="px-2 text-sm font-bold">Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?rut={{ rut_busqueda|urlencode }}&amp;page={{ page_obj.next_page_number }}" class="border-2 border-stone-950 bg-white px-4 py-2 text-sm font-bold hover:bg-lime-300">Siguiente</a>
+    {% endif %}
+  </nav>
+  {% endif %}
 </section>
 {% endblock %}

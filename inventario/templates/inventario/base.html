@@ -63,7 +63,15 @@
         </nav>
     </header>
     <main id="contenido" class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-        {% if messages %}<div class="mx-auto mb-6 max-w-6xl space-y-2">{% for message in messages %}<div class="border-2 border-stone-950 bg-lime-300 px-4 py-3 text-sm font-semibold text-stone-950">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% if messages %}
+        <div class="mx-auto mb-6 max-w-6xl space-y-3" aria-live="polite">
+            {% for message in messages %}
+            <div role="alert" class="border-2 border-stone-950 px-4 py-3 text-sm font-semibold text-stone-950 shadow-[3px_3px_0_#1c1c1b] {% if 'success' in message.tags %}bg-lime-300{% elif 'error' in message.tags %}bg-red-300{% elif 'warning' in message.tags %}bg-amber-300{% else %}bg-sky-200{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 </body>

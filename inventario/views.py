@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -44,8 +45,10 @@ def producto_list(request):
     elif filtro_stock == 'no_disponibles':
         productos = productos.filter(stock=0)
 
+    page_obj = Paginator(productos, 10).get_page(request.GET.get('page'))
     return render(request, 'inventario/producto_list.html', {
-        'object_list': productos,
+        'object_list': page_obj,
+        'page_obj': page_obj,
         'filtro_stock': filtro_stock,
     })
 
@@ -62,6 +65,7 @@ def producto_create(request):
             # el stock total persistido en Producto.
             producto = form.save()
             _guardar_tallas(producto, form.cleaned_data['tallas'])
+            messages.success(request, 'Producto creado correctamente.')
             return redirect('producto_list')
     else:
         form = ProductoForm()
@@ -78,6 +82,7 @@ def producto_update(request, pk):
         if form.is_valid():
             producto = form.save()
             _guardar_tallas(producto, form.cleaned_data['tallas'])
+            messages.success(request, 'Producto actualizado correctamente.')
             return redirect('producto_list')
     else:
         form = ProductoForm(instance=producto)
@@ -90,6 +95,7 @@ def producto_delete(request, pk):
 
     if request.method == 'POST':
         producto.delete()
+        messages.success(request, 'Producto eliminado correctamente.')
         return redirect('producto_list')
 
     return render(request, 'inventario/producto_confirm_delete.html', {'object': producto})
@@ -101,8 +107,10 @@ def venta_list(request):
     ventas = Venta.objects.select_related('cliente').prefetch_related('detalles__producto').order_by('-fecha')
     if rut_busqueda:
         ventas = ventas.filter(rut_cliente__icontains=rut_busqueda)
+    page_obj = Paginator(ventas, 10).get_page(request.GET.get('page'))
     return render(request, 'inventario/venta_list.html', {
-        'ventas': ventas,
+        'ventas': page_obj,
+        'page_obj': page_obj,
         'rut_busqueda': rut_busqueda,
     })
 

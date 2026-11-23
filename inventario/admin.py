@@ -3,6 +3,10 @@ from django.db.models import Sum
 from django.utils.dateparse import parse_date
 from .models import Cliente, Producto, ProductoTalla, Venta, VentaDetalle
 
+admin.site.site_header = "CuidaTuVenta — Administración"
+admin.site.site_title = "Portal CuidaTuVenta"
+admin.site.index_title = "Panel de Control de Inventario y Ventas"
+
 # Register your models here.
 
 class ProductoAdmin(admin.ModelAdmin):
